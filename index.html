@@ -277,67 +277,6 @@
       max-width: 320px;
     }
 
-    /* ── API Key Modal ── */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal {
-      background: var(--bg-card);
-      border: 1px solid rgba(212, 164, 76, 0.25);
-      border-radius: 20px;
-      padding: 2rem;
-      max-width: 420px;
-      width: 100%;
-    }
-
-    .modal h2 {
-      font-family: 'Playfair Display', serif;
-      color: var(--gold);
-      margin-bottom: 0.75rem;
-      font-size: 1.4rem;
-    }
-
-    .modal p {
-      color: var(--text-muted);
-      font-size: 0.9rem;
-      line-height: 1.5;
-      margin-bottom: 1.25rem;
-    }
-
-    .modal input {
-      width: 100%;
-      padding: 0.85rem 1rem;
-      border-radius: 12px;
-      border: 1px solid rgba(212, 164, 76, 0.3);
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.95rem;
-      outline: none;
-      margin-bottom: 1rem;
-    }
-
-    .modal input:focus {
-      border-color: var(--gold);
-    }
-
-    .modal .btn {
-      width: 100%;
-      margin-top: 0;
-    }
-
     /* ── Footer ── */
     .footer {
       text-align: center;
@@ -349,16 +288,6 @@
   </style>
 </head>
 <body>
-
-  <!-- API Key Modal -->
-  <div class="modal-overlay" id="apiKeyModal">
-    <div class="modal">
-      <h2>Enter your API key</h2>
-      <p>Glug uses the Anthropic API to read wine lists. Your key is stored only in your browser and never sent anywhere else.</p>
-      <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
-      <button class="btn" id="saveKeyBtn">Let's go</button>
-    </div>
-  </div>
 
   <!-- Landing Screen -->
   <div class="screen active" id="landing">
@@ -415,25 +344,8 @@
       $(`#${id}`).classList.add('active');
     }
 
-    // ── API Key ──
-    function getApiKey() {
-      return localStorage.getItem('glug_api_key') || '';
-    }
-
-    function requireApiKey() {
-      return new Promise((resolve) => {
-        const key = getApiKey();
-        if (key) return resolve(key);
-        $('#apiKeyModal').classList.add('active');
-        $('#saveKeyBtn').onclick = () => {
-          const val = $('#apiKeyInput').value.trim();
-          if (!val) return;
-          localStorage.setItem('glug_api_key', val);
-          $('#apiKeyModal').classList.remove('active');
-          resolve(val);
-        };
-      });
-    }
+    // ── Config ──
+    const WORKER_URL = 'https://glug-api.bruhs.workers.dev';
 
     // ── Photo handling ──
     function fileToBase64(file) {
@@ -451,7 +363,7 @@
     }
 
     // ── API Call ──
-    async function analyzeWineList(base64, mediaType, apiKey) {
+    async function analyzeWineList(base64, mediaType) {
       const prompt = `You are a fun, knowledgeable wine buddy — not a stuffy sommelier. Look at this photo of a wine list from a restaurant.
 
 Your job:
@@ -475,13 +387,10 @@ Respond in EXACTLY this JSON format and nothing else:
 If you can't read the wine list clearly, respond with:
 { "error": "Couldn't make out the wine list — try a clearer photo!" }`;
 
-      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      const resp = await fetch(WORKER_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
         },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
@@ -508,10 +417,6 @@ If you can't read the wine list clearly, respond with:
 
       if (!resp.ok) {
         const errBody = await resp.text();
-        if (resp.status === 401) {
-          localStorage.removeItem('glug_api_key');
-          throw new Error('Invalid API key. Please try again.');
-        }
         throw new Error(`API error (${resp.status}): ${errBody}`);
       }
 
@@ -554,9 +459,8 @@ If you can't read the wine list clearly, respond with:
     async function handlePhoto(file) {
       showScreen('loading');
       try {
-        const apiKey = await requireApiKey();
         const { base64, mediaType } = await fileToBase64(file);
-        const wine = await analyzeWineList(base64, mediaType, apiKey);
+        const wine = await analyzeWineList(base64, mediaType);
         displayResult(wine);
       } catch (err) {
         console.error(err);
@@ -565,8 +469,7 @@ If you can't read the wine list clearly, respond with:
     }
 
     // ── Event listeners ──
-    $('#snapBtn').addEventListener('click', async () => {
-      await requireApiKey();
+    $('#snapBtn').addEventListener('click', () => {
       $('#photoInput').click();
     });
 
