@@ -209,6 +209,25 @@
       margin-bottom: 1rem;
     }
 
+    .price-compare {
+      display: flex;
+      justify-content: center;
+      gap: 1.2rem;
+      margin: 0.8rem 0;
+      font-size: 0.95rem;
+    }
+    .price-compare .price-tag {
+      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      background: rgba(255,255,255,0.06);
+    }
+    .price-compare .price-tag.retail {
+      color: var(--gold);
+    }
+    .price-compare .price-tag.restaurant {
+      color: var(--muted);
+    }
+
     .wine-explanation {
       font-size: 1.05rem;
       line-height: 1.65;
@@ -364,6 +383,7 @@
     <div class="result-card">
       <div class="wine-name" id="wineName"></div>
       <div class="wine-meta" id="wineMeta"></div>
+      <div class="price-compare" id="priceCompare"></div>
       <div class="wine-explanation" id="wineExplanation"></div>
     </div>
     <div class="result-card">
@@ -435,17 +455,20 @@
       const prompt = `You are a fun, knowledgeable wine buddy — not a stuffy sommelier. Look at this photo of a wine list from a restaurant.
 
 Your job:
-1. Identify the wines on the list.
-2. Pick the single BEST bang-for-the-buck bottle.
-3. Explain your pick in 2–3 casual, fun sentences. No wine jargon — talk like a cool friend who knows their stuff.
-4. Suggest one food pairing in a single line.
+1. Identify the wines on the list with their restaurant prices.
+2. For each wine, estimate what it typically costs at a supermarket or retail store based on your knowledge.
+3. Pick the single BEST bang-for-the-buck bottle — the one with the lowest markup compared to its retail price.
+4. Explain your pick in 2–3 casual, fun sentences. Mention the markup so the user knows they're getting a deal. No wine jargon — talk like a cool friend who knows their stuff.
+5. Suggest one food pairing in a single line.
 
 Respond in EXACTLY this JSON format and nothing else:
 {
   "name": "Wine Name",
   "grape": "Grape variety (or blend)",
   "region": "Region, Country",
-  "explanation": "Your 2-3 sentence casual explanation.",
+  "restaurant_price": "$XX",
+  "retail_price": "~$XX",
+  "explanation": "Your 2-3 sentence casual explanation mentioning the value.",
   "pairing": "Your one-line food pairing suggestion."
 }
 
@@ -509,6 +532,14 @@ If you can't read the wine list clearly, respond with:
     function displayResult(wine) {
       $('#wineName').textContent = wine.name;
       $('#wineMeta').textContent = [wine.grape, wine.region].filter(Boolean).join(' · ');
+      const priceEl = $('#priceCompare');
+      if (wine.restaurant_price && wine.retail_price) {
+        priceEl.innerHTML =
+          `<span class="price-tag restaurant">Menu: ${wine.restaurant_price}</span>` +
+          `<span class="price-tag retail">Retail: ${wine.retail_price}</span>`;
+      } else {
+        priceEl.innerHTML = '';
+      }
       $('#wineExplanation').textContent = wine.explanation;
       $('#foodPairing').textContent = wine.pairing;
       showScreen('result');
