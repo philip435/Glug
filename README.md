@@ -1,6 +1,6 @@
 # Glug
 
-Your fun wine wingman. Snap a photo of a restaurant wine list and get an instant AI-powered recommendation for the best value, crowd-pleasing bottle.
+Your fun wine wingman. Snap a photo of a restaurant wine list and get an instant AI-powered recommendation for the best bang-for-the-buck bottle.
 
 ## How It Works
 
