@@ -348,17 +348,43 @@
     const WORKER_URL = 'https://glug-api.bruhs.workers.dev';
 
     // ── Photo handling ──
+    const MAX_IMAGE_BYTES = 4 * 1024 * 1024; // 4MB to stay safely under 5MB API limit
+
     function fileToBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
           const dataUrl = reader.result;
           const base64 = dataUrl.split(',')[1];
-          const mediaType = file.type || 'image/jpeg';
-          resolve({ base64, mediaType });
+          if (atob(base64).length <= MAX_IMAGE_BYTES) {
+            return resolve({ base64, mediaType: file.type || 'image/jpeg' });
+          }
+          resizeImage(dataUrl).then(resolve).catch(reject);
         };
         reader.onerror = reject;
         reader.readAsDataURL(file);
+      });
+    }
+
+    function resizeImage(dataUrl) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let { width, height } = img;
+          const scale = Math.min(1, 2048 / Math.max(width, height));
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const resized = canvas.toDataURL('image/jpeg', 0.8);
+          const base64 = resized.split(',')[1];
+          resolve({ base64, mediaType: 'image/jpeg' });
+        };
+        img.onerror = reject;
+        img.src = dataUrl;
       });
     }
 
