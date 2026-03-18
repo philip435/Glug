@@ -372,7 +372,7 @@
         img.onload = () => {
           const canvas = document.createElement('canvas');
           let { width, height } = img;
-          const scale = Math.min(1, 2048 / Math.max(width, height));
+          const scale = Math.min(1, 1568 / Math.max(width, height));
           width = Math.round(width * scale);
           height = Math.round(height * scale);
           canvas.width = width;
@@ -419,7 +419,7 @@ If you can't read the wine list clearly, respond with:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 1024,
           messages: [{
             role: 'user',
